@@ -1,0 +1,56 @@
+# Backend: Flask API for Room Management
+
+from flask import Flask, jsonify, request
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)  # Allow frontend to interact with backend
+
+# Sample data
+rooms = [{"id": i, "type": "Single", "status": "Available"} for i in range(1, 101)]
+bookings = []
+users = [{"id": 1, "name": "Admin", "role": "admin"}]
+
+# User Management
+@app.route('/users', methods=['GET'])
+def get_users():
+    return jsonify(users)
+
+@app.route('/users', methods=['POST'])
+def add_user():
+    data = request.json
+    new_user = {"id": len(users) + 1, "name": data.get("name"), "role": data.get("role", "resident")}
+    users.append(new_user)
+    return jsonify(new_user)
+
+# Room Management
+@app.route('/rooms', methods=['GET'])
+def get_rooms():
+    return jsonify(rooms)
+
+@app.route('/rooms/<int:room_id>', methods=['GET'])
+def get_room(room_id):
+    room = next((room for room in rooms if room["id"] == room_id), None)
+    return jsonify(room) if room else (jsonify({"error": "Room not found"}), 404)
+
+# Booking Management
+@app.route('/book', methods=['POST'])
+def book_room():
+    data = request.json
+    room_id = data.get("room_id")
+    user_id = data.get("user_id")
+    
+    for room in rooms:
+        if room["id"] == room_id and room["status"] == "Available":
+            room["status"] = "Booked"
+            bookings.append({"room_id": room_id, "user_id": user_id})
+            return jsonify({"message": "Room booked successfully!"})
+    
+    return jsonify({"error": "Room not available"}), 400
+
+@app.route('/bookings', methods=['GET'])
+def get_bookings():
+    return jsonify(bookings)
+
+if __name__ == '__main__':
+    app.run(debug=True)
